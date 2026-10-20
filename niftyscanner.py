@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 from flask import Flask, redirect, render_template_string, request, url_for
 import yfinance as yf
 
@@ -42,48 +42,51 @@ def fetch_live_stock_data(symbol):
     }
 
 def analyze_csv_data(filepath):
-    try:
-        df = pd.read_csv(filepath)
-    except Exception as e:
-        return None, f"Error reading CSV: {str(e)}"
-
-    df.columns = df.columns.str.strip()
-    symbol_col = next((c for c in ["SYMBOL", "TICKER", "Company Name"] if c in df.columns), df.columns[0])
-    
     results = []
-    for _, row in df.iterrows():
-        sym = str(row[symbol_col]).strip()
-        if sym.upper() in ["NIFTY 500", "NAN", "", "NONE"]:
-            continue
+    try:
+        with open(filepath, mode="r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            # Normalize column headers
+            fieldnames = [fn.strip() for fn in reader.fieldnames] if reader.fieldnames else []
+            symbol_col = next((c for c in ["SYMBOL", "TICKER", "Company Name"] if c in fieldnames), fieldnames[0] if fieldnames else "SYMBOL")
             
-        data = fetch_live_stock_data(sym)
-        ltp = data["ltp"]
-        open_p = data["open"]
-        high = data["high"]
-        low = data["low"]
-        chg = data["change"]
-        
-        spread = high - low if high > low else ltp * 0.01
+            for row in reader:
+                # Clean keys
+                clean_row = {k.strip(): v for k, v in row.items()}
+                sym = str(clean_row.get(symbol_col, "")).strip()
+                if not sym or sym.upper() in ["NIFTY 500", "NAN", "NONE"]:
+                    continue
+                    
+                data = fetch_live_stock_data(sym)
+                ltp = data["ltp"]
+                open_p = data["open"]
+                high = data["high"]
+                low = data["low"]
+                chg = data["change"]
+                
+                spread = high - low if high > low else ltp * 0.01
 
-        category = "Intraday-Long" if chg > 0 else "Intraday-Short"
-        entry = ltp
-        sl = round(low * 0.992, 2) if "Long" in category else round(high * 1.008, 2)
-        t1 = round(entry + (spread * 1.2), 2) if "Long" in category else round(entry - (spread * 1.2), 2)
-        t2 = round(entry + (spread * 2.2), 2) if "Long" in category else round(entry - (spread * 2.2), 2)
+                category = "Intraday-Long" if chg >= 0 else "Intraday-Short"
+                entry = ltp
+                sl = round(low * 0.992, 2) if "Long" in category else round(high * 1.008, 2)
+                t1 = round(entry + (spread * 1.2), 2) if "Long" in category else round(entry - (spread * 1.2), 2)
+                t2 = round(entry + (spread * 2.2), 2) if "Long" in category else round(entry - (spread * 2.2), 2)
 
-        results.append({
-            "symbol": sym,
-            "open": open_p,
-            "high": high,
-            "low": low,
-            "ltp": ltp,
-            "change": chg,
-            "category": category,
-            "entry": entry,
-            "stoploss": sl,
-            "target1": t1,
-            "target2": t2
-        })
+                results.append({
+                    "symbol": sym,
+                    "open": open_p,
+                    "high": high,
+                    "low": low,
+                    "ltp": ltp,
+                    "change": chg,
+                    "category": category,
+                    "entry": entry,
+                    "stoploss": sl,
+                    "target1": t1,
+                    "target2": t2
+                })
+    except Exception as e:
+        return None, str(e)
 
     return results, None
 
@@ -148,7 +151,13 @@ HTML_TEMPLATE = """
 def index():
     default_csv = "uploads/model.csv"
     if not os.path.exists(default_csv):
-        pd.DataFrame({"SYMBOL": ["KOTAKBANK", "HDFCBANK", "RELIANCE", "SBIN"]}).to_csv(default_csv, index=False)
+        with open(default_csv, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["SYMBOL"])
+            writer.writerow(["KOTAKBANK"])
+            writer.writerow(["HDFCBANK"])
+            writer.writerow(["RELIANCE"])
+            writer.writerow(["SBIN"])
     
     stocks, _ = analyze_csv_data(default_csv)
     return render_template_string(HTML_TEMPLATE, stocks=stocks or [])
