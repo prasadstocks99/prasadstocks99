@@ -228,7 +228,7 @@ HTML_TEMPLATE = """
             </div>
             <div>
                 <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                    NEXUS <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-semibold border border-cyan-500/30">PRO v3.6 Live</span>
+                    prasadstocks99 <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-semibold border border-cyan-500/30">PRO v3.6 Live</span>
                 </h1>
                 <p class="text-xs text-slate-400">Institutional Swing & Intraday Quantitative Terminal</p>
             </div>
@@ -475,7 +475,7 @@ HTML_TEMPLATE = """
     </main>
 
     <footer class="text-center py-6 text-xs text-slate-500 border-t border-bordercol mt-10">
-        NEXUS PRO Quantitative Terminal &bull; Full OHLC Price Population Enabled
+        prasadstocks99 PRO Quantitative Terminal &bull; Full OHLC Price Population Enabled
     </footer>
 </body>
 </html>
